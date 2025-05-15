@@ -47,29 +47,64 @@ async function startListener() {
               console.log(`ℹ️ Found session_id from images table: ${sessionIdFromImageTable}`);
 
               // Step 2: Query 'sessions' table using the retrieved session_id
-              // The column in 'sessions' table is also named 'session_id' based on your screenshot
-              const sessionQuery = 'SELECT name, email FROM sessions WHERE session_id = $1';
+              const sessionQuery = 'SELECT name, style FROM sessions WHERE session_id = $1';
               console.log(`ℹ️ Querying sessions table with session_id: ${sessionIdFromImageTable}`);
               const sessionResult = await client.query(sessionQuery, [sessionIdFromImageTable]);
 
               if (sessionResult.rows.length > 0) {
-                  const { name, email } = sessionResult.rows[0];
-                  console.log(`ℹ️ Found session - Name: ${name}, Email: ${email}`);
-                  const safeName = name ? String(name).replace(/[^a-zA-Z0-9_.-]/g, '_') : 'unknown_name';
-                  const safeEmail = email ? String(email).replace(/[^a-zA-Z0-9_.-@]/g, '_') : 'unknown_email';
-                  
-                  const lastDotIndex = originalImageFile.lastIndexOf('.');
-                  let baseName = originalImageFile;
-                  let extension = '.png'; // Default extension
+                  const { name, style } = sessionResult.rows[0];
+                  console.log(`ℹ️ Found session - Name: ${name}, Style: ${style}`);
 
-                  if (lastDotIndex !== -1 && lastDotIndex > 0 && lastDotIndex < originalImageFile.length - 1) {
-                      baseName = originalImageFile.substring(0, lastDotIndex);
-                      extension = originalImageFile.substring(lastDotIndex);
-                  } else {
-                      baseName = originalImageFile.replace(/[^a-zA-Z0-9_.-]/g, '_');
-                  }
+                  const saneUserName = name ? String(name).trim().replace(/[^\w\s.-]/g, '_').replace(/\s+/g, ' ') : 'UnknownUser';
                   
-                  imageName = `${safeName}_${safeEmail}_${baseName}${extension}`;
+                  // Sanitize and format style (e.g., small_business_owners -> Small Business Owners)
+                  let saneStyle = 'General'; // Default style if not present or empty
+                  if (style && String(style).trim() !== '') {
+                      saneStyle = String(style).trim().replace(/_/g, ' ') // Replace underscores with spaces
+                                             .replace(/\b\w/g, char => char.toUpperCase()) // Capitalize first letter of each word
+                                             .replace(/[^\w\s.-]/g, '_'); // Sanitize other characters
+                  }
+
+                  // Extract original base name and extension from originalImageFile (e.g. UUID_final.png)
+                  const lastDotOriginal = originalImageFile.lastIndexOf('.');
+                  let originalFileBaseName = originalImageFile; 
+                  let fileExtension = '.png'; // Default extension
+
+                  if (lastDotOriginal !== -1 && lastDotOriginal > 0 && lastDotOriginal < originalImageFile.length - 1) {
+                      originalFileBaseName = originalImageFile.substring(0, lastDotOriginal); // e.g., "UUID_final"
+                      fileExtension = originalImageFile.substring(lastDotOriginal); // e.g., ".png"
+                  } else {
+                      // If no extension or unusual dot placement, sanitize the whole thing as base name
+                      originalFileBaseName = originalImageFile.replace(/[^\w.-]/g, '_');
+                  }
+
+                  // Determine Image Type based on common suffixes in the original filename's base
+                  let imageTypeDescriptor = "Image"; // Default type
+                  const lowerOriginalFileBaseName = originalFileBaseName.toLowerCase();
+                  if (lowerOriginalFileBaseName.includes("_final")) {
+                      imageTypeDescriptor = "Final Output";
+                  } else if (lowerOriginalFileBaseName.includes("_qr")) {
+                      imageTypeDescriptor = "QR Code";
+                  } // Add more types for other suffixes like _raw if needed
+
+                  // Generate Timestamp string: YYYY-MM-DD_HHMM
+                  const now = new Date();
+                  const year = now.getFullYear();
+                  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+                  const day = now.getDate().toString().padStart(2, '0');
+                  const hours = now.getHours().toString().padStart(2, '0');
+                  const minutes = now.getMinutes().toString().padStart(2, '0');
+                  const dateTimeStamp = `${year}-${month}-${day}_${hours}${minutes}`;
+
+                  // Construct the new user-friendly image name, now including style
+                  imageName = `${saneUserName} - ${saneStyle} - ${imageTypeDescriptor} - ${dateTimeStamp}${fileExtension}`;
+                  
+                  // Final sanitization pass for the whole name to ensure it's a valid filename
+                  imageName = imageName.replace(/[\\/:*?"<>|]/g, '_') // Replace characters forbidden in many OS
+                                     .replace(/_{2,}/g, '_')        // Collapse multiple underscores
+                                     .replace(/-{2,}/g, '-')         // Collapse multiple hyphens
+                                     .replace(/\s*-\s*/g, ' - ');   // Standardize spacing around " - " separator
+
               } else {
                   console.warn(`⚠️ Session not found in sessions table for ID: ${sessionIdFromImageTable}. Using original filename: ${originalImageFile}`);
                   imageName = originalImageFile;
