@@ -1,6 +1,6 @@
 {
     "scripts": {
-        "start": "ts-node index.ts"
+        "start": "node --loader ts-node/esm index.ts"
     },
     "dependencies": {
         "googleapis": "^118.0.0",
