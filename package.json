@@ -1,6 +1,7 @@
 {
     "scripts": {
-        "start": "node --loader ts-node/esm index.ts"
+        "build": "tsc",
+        "start": "node dist/index.js"
     },
     "dependencies": {
         "googleapis": "^118.0.0",
