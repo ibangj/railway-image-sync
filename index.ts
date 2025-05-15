@@ -1,7 +1,7 @@
-import { Client } from 'pg';
+import { Client, Notification } from 'pg';
 import fetch from 'node-fetch';
-import { config } from './config';
-import { uploadBufferToDrive } from './drive';
+import { config } from './config.js';
+import { uploadBufferToDrive } from './drive.js';
 
 console.log("ℹ️ Starting application...");
 
@@ -24,7 +24,7 @@ async function startListener() {
     await client.query('LISTEN new_image_event');
     console.log("✅ LISTEN new_image_event set up successfully.");
 
-    client.on('notification', async (msg) => {
+    client.on('notification', async (msg: Notification) => {
       console.log(`ℹ️ Received notification: ${msg.channel}, Payload: ${msg.payload}`);
       const finalPath = msg.payload!;
       const imageName = finalPath.split('/').pop();
