@@ -1,4 +1,6 @@
-export const config = {
+export let config: any;
+try {
+  config = {
     pg: {
       user: process.env.POSTGRES_USER!,
       password: process.env.POSTGRES_PASSWORD!,
@@ -12,4 +14,10 @@ export const config = {
       Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON!, 'base64').toString('utf-8')
     ),
   };
+  console.log("✅ Configuration loaded successfully.");
+} catch (error) {
+  console.error("❌ Failed to load configuration:", error);
+  // Optionally, rethrow the error or exit if configuration is critical
+  // process.exit(1);
+}
   
