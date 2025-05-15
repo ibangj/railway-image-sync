@@ -1,0 +1,13 @@
+{
+    "scripts": {
+        "start": "ts-node index.ts"
+    },
+    "dependencies": {
+        "pg": "^8.11.0",
+        "googleapis": "^118.0.0",
+        "node-fetch": "^3.3.2"
+    },
+    "type": "module"
+  }
+  
+  
